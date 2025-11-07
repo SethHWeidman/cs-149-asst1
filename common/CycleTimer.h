@@ -5,7 +5,7 @@
 #include <cstdint>
 
 class CycleTimer {
- public:
+public:
   using SysClock = std::uint64_t;
   using Clock = std::chrono::steady_clock;
   using Seconds = std::chrono::duration<double>;
@@ -20,8 +20,8 @@ class CycleTimer {
   // Utility class: no instances.
   CycleTimer() = delete;
   ~CycleTimer() = delete;
-  CycleTimer(const CycleTimer&) = delete;
-  CycleTimer& operator=(const CycleTimer&) = delete;
+  CycleTimer(const CycleTimer &) = delete;
+  CycleTimer &operator=(const CycleTimer &) = delete;
 };
 
-#endif  // SYRAH_CYCLE_TIMER_H_
+#endif // SYRAH_CYCLE_TIMER_H_

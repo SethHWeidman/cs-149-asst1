@@ -23,13 +23,26 @@ extern void mandelbrotSerial(float x0, float y0, float x1, float y1, int width, 
 // Thread entrypoint.
 void workerThreadStart(WorkerArgs *const args) {
 
-  // TODO FOR CS149 STUDENTS: Implement the body of the worker
-  // thread here. Each thread should make a call to mandelbrotSerial()
-  // to compute a part of the output image.  For example, in a
-  // program that uses two threads, thread 0 could compute the top
-  // half of the image and thread 1 could compute the bottom half.
+  const int tid = args->threadId;
+  const int nth = args->numThreads;
+  const int H = static_cast<int>(args->height);
 
-  printf("Hello world from thread %d\n", args->threadId);
+  const double t0 = CycleTimer::currentSeconds();
+
+  // Contiguous block of rows (spatial/striped decomposition)
+  // Thread 0 gets rows (0, rowsPerThread-1), thread 1 gets the next block, etc.
+  int rowsPerThread = H / nth;
+  int startRow = tid * rowsPerThread;
+  if (tid == nth - 1) {
+    // Last thread takes the remainder
+    rowsPerThread = H - startRow;
+  }
+
+  mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow,
+                   rowsPerThread, args->maxIterations, args->output);
+
+  const double t1 = CycleTimer::currentSeconds();
+  printf("Thread %d took %.3f ms\n", tid, (t1 - t0) * 1000);
 }
 
 //
@@ -52,9 +65,6 @@ void mandelbrotThread(int numThreads, float x0, float y0, float x1, float y1, in
 
   for (int i = 0; i < numThreads; i++) {
 
-    // TODO FOR CS149 STUDENTS: You may or may not wish to modify
-    // the per-thread arguments here.  The code below copies the
-    // same arguments for each thread
     args[i].x0 = x0;
     args[i].y0 = y0;
     args[i].x1 = x1;
@@ -64,7 +74,6 @@ void mandelbrotThread(int numThreads, float x0, float y0, float x1, float y1, in
     args[i].maxIterations = maxIterations;
     args[i].numThreads = numThreads;
     args[i].output = output;
-
     args[i].threadId = i;
   }
 

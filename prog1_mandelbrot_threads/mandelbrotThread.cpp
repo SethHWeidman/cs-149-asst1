@@ -12,6 +12,7 @@ typedef struct {
   int *output;
   int threadId;
   int numThreads;
+  int schedule; // 0 = block, 1 = interleaved
 } WorkerArgs;
 
 extern void mandelbrotSerial(float x0, float y0, float x1, float y1, int width, int height,
@@ -29,20 +30,30 @@ void workerThreadStart(WorkerArgs *const args) {
 
   const double t0 = CycleTimer::currentSeconds();
 
-  // Contiguous block of rows (spatial/striped decomposition)
-  // Thread 0 gets rows (0, rowsPerThread-1), thread 1 gets the next block, etc.
-  int rowsPerThread = H / nth;
-  int startRow = tid * rowsPerThread;
-  if (tid == nth - 1) {
-    // Last thread takes the remainder
-    rowsPerThread = H - startRow;
+  if (args->schedule == 0) {
+    // Contiguous block of rows (spatial/striped decomposition)
+    // Thread 0 gets rows (0, rowsPerThread-1), thread 1 gets the next block, etc.
+
+    int rowsPerThread = H / nth;
+    int startRow = tid * rowsPerThread;
+    if (tid == nth - 1) {
+      // Last thread takes the remainder
+      rowsPerThread = H - startRow;
+    }
+
+    mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow,
+                     rowsPerThread, args->maxIterations, args->output);
+
+  } else {
+    // Static interleaved mapping without tiling
+    // thread t computes rows r where r % nth == t.
+    for (int r = tid; r < H; r += nth) {
+      mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, r, 1,
+                       args->maxIterations, args->output);
+    }
+    const double t1 = CycleTimer::currentSeconds();
+    printf("Thread %d took %.3f ms\n", tid, (t1 - t0) * 1000);
   }
-
-  mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow,
-                   rowsPerThread, args->maxIterations, args->output);
-
-  const double t1 = CycleTimer::currentSeconds();
-  printf("Thread %d took %.3f ms\n", tid, (t1 - t0) * 1000);
 }
 
 //
@@ -51,7 +62,7 @@ void workerThreadStart(WorkerArgs *const args) {
 // Multi-threaded implementation of mandelbrot set image generation.
 // Threads of execution are created by spawning std::threads.
 void mandelbrotThread(int numThreads, float x0, float y0, float x1, float y1, int width, int height,
-                      int maxIterations, int output[]) {
+                      int maxIterations, int output[], int schedule) {
   static constexpr int MAX_THREADS = 32;
 
   if (numThreads > MAX_THREADS) {
@@ -74,6 +85,7 @@ void mandelbrotThread(int numThreads, float x0, float y0, float x1, float y1, in
     args[i].maxIterations = maxIterations;
     args[i].numThreads = numThreads;
     args[i].output = output;
+    args[i].schedule = schedule; // interleaved
     args[i].threadId = i;
   }
 

@@ -1,14 +1,17 @@
 #include <algorithm>
+#include <cctype>
 #include <getopt.h>
 #include <stdio.h>
+#include <string>
 
 #include "CycleTimer.h"
 
 extern void mandelbrotSerial(float x0, float y0, float x1, float y1, int width, int height,
                              int startRow, int numRows, int maxIterations, int output[]);
 
+// schedule: 0=BLOCK, 1=INTERLEAVED
 extern void mandelbrotThread(int numThreads, float x0, float y0, float x1, float y1, int width,
-                             int height, int maxIterations, int output[]);
+                             int height, int maxIterations, int output[], int schedule);
 
 extern void writePPMImage(int *data, int width, int height, const char *filename,
                           int maxIterations);
@@ -31,6 +34,8 @@ void usage(const char *progname) {
   printf("Program Options:\n");
   printf("  -t  --threads <N>  Use N threads\n");
   printf("  -v  --view <INT>   Use specified view settings\n");
+  printf("  -s  --schedule <block|interleaved>\n");
+  printf("                    Work mapping (default: interleaved)\n");
   printf("  -?  --help         This message\n");
 }
 
@@ -57,6 +62,8 @@ int main(int argc, char **argv) {
   const unsigned int height = 1200;
   const int maxIterations = 256;
   int numThreads = 2;
+  // schedule: 0 = block (contiguous stripes), 1 = interleaved
+  int schedule = 1; // default: interleaved
 
   float x0 = -2;
   float x1 = 1;
@@ -65,10 +72,13 @@ int main(int argc, char **argv) {
 
   // parse commandline options ////////////////////////////////////////////
   int opt;
-  static struct option long_options[] = {
-      {"threads", 1, 0, 't'}, {"view", 1, 0, 'v'}, {"help", 0, 0, '?'}, {0, 0, 0, 0}};
+  static struct option long_options[] = {{"threads", 1, 0, 't'},
+                                         {"view", 1, 0, 'v'},
+                                         {"schedule", 1, 0, 's'},
+                                         {"help", 0, 0, '?'},
+                                         {0, 0, 0, 0}};
 
-  while ((opt = getopt_long(argc, argv, "t:v:?", long_options, NULL)) != EOF) {
+  while ((opt = getopt_long(argc, argv, "t:v:s:?", long_options, NULL)) != EOF) {
 
     switch (opt) {
     case 't': {
@@ -85,6 +95,20 @@ int main(int argc, char **argv) {
         scaleAndShift(x0, x1, y0, y1, scaleValue, shiftX, shiftY);
       } else if (viewIndex > 1) {
         fprintf(stderr, "Invalid view index\n");
+        return 1;
+      }
+      break;
+    }
+    case 's': {
+      std::string s(optarg);
+      std::transform(s.begin(), s.end(), s.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      if (s == "block" || s == "0") {
+        schedule = 0;
+      } else if (s == "interleaved" || s == "1") {
+        schedule = 1;
+      } else {
+        fprintf(stderr, "Invalid schedule '%s' (use 'block' or 'interleaved')\n", optarg);
         return 1;
       }
       break;
@@ -125,7 +149,8 @@ int main(int argc, char **argv) {
   for (int i = 0; i < 5; ++i) {
     memset(output_thread, 0, width * height * sizeof(int));
     double startTime = CycleTimer::currentSeconds();
-    mandelbrotThread(numThreads, x0, y0, x1, y1, width, height, maxIterations, output_thread);
+    mandelbrotThread(numThreads, x0, y0, x1, y1, width, height, maxIterations, output_thread,
+                     schedule);
     double endTime = CycleTimer::currentSeconds();
     minThread = std::min(minThread, endTime - startTime);
   }

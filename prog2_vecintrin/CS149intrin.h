@@ -4,9 +4,9 @@
 #ifndef CS149INTRIN_H_
 #define CS149INTRIN_H_
 
-#include <cstdlib>
-#include <cmath>
 #include "logger.h"
+#include <cmath>
+#include <cstdlib>
 
 //*******************
 //* Type Definition *
@@ -14,8 +14,7 @@
 
 extern Logger CS149Logger;
 
-template <typename T>
-struct __cs149_vec {
+template <typename T> struct __cs149_vec {
   T value[VECTOR_WIDTH];
 };
 
@@ -26,7 +25,7 @@ struct __cs149_mask : __cs149_vec<bool> {};
 #define __cs149_vec_float __cs149_vec<float>
 
 // Declare an integer vector register with __cs149_vec_int
-#define __cs149_vec_int   __cs149_vec<int>
+#define __cs149_vec_int __cs149_vec<int>
 
 //***********************
 //* Function Definition *
@@ -62,34 +61,41 @@ void _cs149_vmove_int(__cs149_vec_int &dest, __cs149_vec_int &src, __cs149_mask 
 
 // Load values from array src to vector register dest if vector lane active
 //  otherwise keep the old value
-void _cs149_vload_float(__cs149_vec_float &dest, float* src, __cs149_mask &mask);
-void _cs149_vload_int(__cs149_vec_int &dest, int* src, __cs149_mask &mask);
+void _cs149_vload_float(__cs149_vec_float &dest, float *src, __cs149_mask &mask);
+void _cs149_vload_int(__cs149_vec_int &dest, int *src, __cs149_mask &mask);
 
 // Store values from vector register src to array dest if vector lane active
 //  otherwise keep the old value
-void _cs149_vstore_float(float* dest, __cs149_vec_float &src, __cs149_mask &mask);
-void _cs149_vstore_int(int* dest, __cs149_vec_int &src, __cs149_mask &mask);
+void _cs149_vstore_float(float *dest, __cs149_vec_float &src, __cs149_mask &mask);
+void _cs149_vstore_int(int *dest, __cs149_vec_int &src, __cs149_mask &mask);
 
 // Return calculation of (veca + vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_vadd_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_vadd_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
+void _cs149_vadd_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca,
+                       __cs149_vec_float &vecb, __cs149_mask &mask);
+void _cs149_vadd_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                     __cs149_mask &mask);
 
 // Return calculation of (veca - vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_vsub_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_vsub_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
+void _cs149_vsub_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca,
+                       __cs149_vec_float &vecb, __cs149_mask &mask);
+void _cs149_vsub_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                     __cs149_mask &mask);
 
 // Return calculation of (veca * vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_vmult_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_vmult_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
+void _cs149_vmult_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca,
+                        __cs149_vec_float &vecb, __cs149_mask &mask);
+void _cs149_vmult_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                      __cs149_mask &mask);
 
 // Return calculation of (veca / vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_vdiv_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_vdiv_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
-
+void _cs149_vdiv_float(__cs149_vec_float &vecResult, __cs149_vec_float &veca,
+                       __cs149_vec_float &vecb, __cs149_mask &mask);
+void _cs149_vdiv_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                     __cs149_mask &mask);
 
 // Return calculation of absolute value abs(veca) if vector lane active
 //  otherwise keep the old value
@@ -98,18 +104,24 @@ void _cs149_vabs_int(__cs149_vec_int &vecResult, __cs149_vec_int &veca, __cs149_
 
 // Return a mask of (veca > vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_vgt_float(__cs149_mask &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_vgt_int(__cs149_mask &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
+void _cs149_vgt_float(__cs149_mask &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb,
+                      __cs149_mask &mask);
+void _cs149_vgt_int(__cs149_mask &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                    __cs149_mask &mask);
 
 // Return a mask of (veca < vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_vlt_float(__cs149_mask &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_vlt_int(__cs149_mask &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
+void _cs149_vlt_float(__cs149_mask &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb,
+                      __cs149_mask &mask);
+void _cs149_vlt_int(__cs149_mask &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                    __cs149_mask &mask);
 
 // Return a mask of (veca == vecb) if vector lane active
 //  otherwise keep the old value
-void _cs149_veq_float(__cs149_mask &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb, __cs149_mask &mask);
-void _cs149_veq_int(__cs149_mask &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb, __cs149_mask &mask);
+void _cs149_veq_float(__cs149_mask &vecResult, __cs149_vec_float &veca, __cs149_vec_float &vecb,
+                      __cs149_mask &mask);
+void _cs149_veq_int(__cs149_mask &vecResult, __cs149_vec_int &veca, __cs149_vec_int &vecb,
+                    __cs149_mask &mask);
 
 // Adds up adjacent pairs of elements, so
 //  [0 1 2 3] -> [0+1 0+1 2+3 2+3]
@@ -121,6 +133,6 @@ void _cs149_hadd_float(__cs149_vec_float &vecResult, __cs149_vec_float &vec);
 void _cs149_interleave_float(__cs149_vec_float &vecResult, __cs149_vec_float &vec);
 
 // Add a customized log to help debugging
-void addUserLog(const char * logStr);
+void addUserLog(const char *logStr);
 
 #endif

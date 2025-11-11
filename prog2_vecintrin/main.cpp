@@ -184,6 +184,17 @@ void absVector(float *values, float *output, int N) {
   //  Note: Take a careful look at this loop indexing.  This example
   //  code is not guaranteed to work when (N % VECTOR_WIDTH) != 0.
   //  Why is that the case?
+  //
+  //  The loop causes an out-of-bounds read if `N` is not a multiple of `VECTOR_WIDTH`.
+  //
+  //  For example, if N = 23 and VECTOR_WIDTH = 4:
+  //  - The final loop iteration starts at i = 20.
+  //  - `_cs149_vload_float` will attempt to load 4 elements, accessing indices 20, 21, 22, and 23.
+  //  - Since the array's valid indices are 0-22, accessing values[23] reads past the end of the
+  //    array, causing undefined behavior.
+  //
+  //  A correct implementation must handle the remaining elements, either by using a mask for the
+  //  final iteration or by processing the leftovers in a separate scalar loop.
   for (int i = 0; i < N; i += VECTOR_WIDTH) {
 
     // All ones

@@ -29,6 +29,7 @@ void workerThreadStart(WorkerArgs *const args) {
   const int H = static_cast<int>(args->height);
 
   const double t0 = CycleTimer::currentSeconds();
+  const double t1 = t0;
 
   if (args->schedule == 0) {
     // Contiguous block of rows (spatial/striped decomposition)
@@ -43,7 +44,7 @@ void workerThreadStart(WorkerArgs *const args) {
 
     mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width, args->height, startRow,
                      rowsPerThread, args->maxIterations, args->output);
-
+    const double t1 = CycleTimer::currentSeconds();
   } else {
     // Static interleaved mapping without tiling
     // thread t computes rows r where r % nth == t.
@@ -52,8 +53,8 @@ void workerThreadStart(WorkerArgs *const args) {
                        args->maxIterations, args->output);
     }
     const double t1 = CycleTimer::currentSeconds();
-    printf("Thread %d took %.3f ms\n", tid, (t1 - t0) * 1000);
   }
+  printf("Thread %d took %.3f ms\n", tid, (t1 - t0) * 1000);
 }
 
 //

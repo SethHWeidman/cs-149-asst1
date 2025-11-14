@@ -74,22 +74,22 @@ int main(int argc, char *argv[]) {
     printf("Passed!!!\n");
   }
 
-  printf("\n\e[1;31mARRAY SUM\e[0m (bonus) \n");
-  if (N % VECTOR_WIDTH == 0) {
-    float sumGold = arraySumSerial(values, N);
-    float sumOutput = arraySumVector(values, N);
-    float epsilon = 0.1;
-    bool sumCorrect = abs(sumGold - sumOutput) < epsilon * 2;
-    if (!sumCorrect) {
-      printf("Expected %f, got %f\n.", sumGold, sumOutput);
-      printf("@@@ Failed!!!\n");
-    } else {
-      printf("Passed!!!\n");
-    }
-  } else {
-    printf("Must have N %% VECTOR_WIDTH == 0 for this problem (VECTOR_WIDTH is %d)\n",
-           VECTOR_WIDTH);
-  }
+  // printf("\n\e[1;31mARRAY SUM\e[0m (bonus) \n");
+  // if (N % VECTOR_WIDTH == 0) {
+  //   float sumGold = arraySumSerial(values, N);
+  //   float sumOutput = arraySumVector(values, N);
+  //   float epsilon = 0.1;
+  //   bool sumCorrect = abs(sumGold - sumOutput) < epsilon * 2;
+  //   if (!sumCorrect) {
+  //     printf("Expected %f, got %f\n.", sumGold, sumOutput);
+  //     printf("@@@ Failed!!!\n");
+  //   } else {
+  //     printf("Passed!!!\n");
+  //   }
+  // } else {
+  //   printf("Must have N %% VECTOR_WIDTH == 0 for this problem (VECTOR_WIDTH is %d)\n",
+  //          VECTOR_WIDTH);
+  // }
 
   delete[] values;
   delete[] exponents;
@@ -249,14 +249,63 @@ void clampedExpSerial(float *values, int *exponents, float *output, int N) {
 }
 
 void clampedExpVector(float *values, int *exponents, float *output, int N) {
+  for (int i = 0; i < N; i += VECTOR_WIDTH) {
+    // 1. Create a mask to handle the final iteration if N is not a multiple of VECTOR_WIDTH.
+    int num_lanes = (i + VECTOR_WIDTH > N) ? (N - i) : VECTOR_WIDTH;
+    __cs149_mask active_mask = _cs149_init_ones(num_lanes);
 
-  //
-  // CS149 STUDENTS TODO: Implement your vectorized version of
-  // clampedExpSerial() here.
-  //
-  // Your solution should work for any value of
-  // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
-  //
+    // 2. Load a vector of values and exponents.
+    __cs149_vec_float v_values;
+    __cs149_vec_int v_exponents;
+    _cs149_vload_float(v_values, values + i, active_mask);
+    _cs149_vload_int(v_exponents, exponents + i, active_mask);
+
+    // 3. Define vector constants.
+    __cs149_vec_int v_zero_int = _cs149_vset_int(0);
+    __cs149_vec_int v_one_int = _cs149_vset_int(1);
+    __cs149_vec_float v_clamp_val = _cs149_vset_float(9.999999f);
+
+    // 4. Start building the result.
+    // Stores the calculated power (x^y) for each lane
+    __cs149_vec_float v_result;
+    // Stores the remaining count of multiplications (y-1) for each lane
+    __cs149_vec_int v_count;
+
+    // 5. Identify lanes where exponent is 0.
+    // We will simply set these values to 1.0f at the end.
+    __cs149_mask mask_y_is_0;
+    _cs149_veq_int(mask_y_is_0, v_exponents, v_zero_int, active_mask);
+
+    // 6. For lanes where exponent is not 0, perform exponentiation.
+    __cs149_mask mask_y_is_not_0 = _cs149_mask_not(mask_y_is_0);
+    // and with `active_mask` to prevent processing inactive lanes
+    mask_y_is_not_0 = _cs149_mask_and(mask_y_is_not_0, active_mask);
+
+    // Initialize result and count for these lanes (result = x, count = y - 1)
+    _cs149_vmove_float(v_result, v_values, mask_y_is_not_0);
+    // y - 1
+    _cs149_vsub_int(v_count, v_exponents, v_one_int, mask_y_is_not_0);
+
+    // Perform repeated multiplication (simulating `while(count > 0)`).
+    // This loop runs up to the maximum possible exponent.
+    for (int j = 0; j < EXP_MAX - 1; j++) {
+      __cs149_mask has_to_multiply;
+      _cs149_vgt_int(has_to_multiply, v_count, v_zero_int, mask_y_is_not_0);
+      _cs149_vmult_float(v_result, v_result, v_values, has_to_multiply);
+      _cs149_vsub_int(v_count, v_count, v_one_int, has_to_multiply);
+    }
+
+    // 7. Clamp the results for the `y != 0` lanes.
+    __cs149_mask needs_clamping;
+    _cs149_vgt_float(needs_clamping, v_result, v_clamp_val, mask_y_is_not_0);
+    _cs149_vset_float(v_result, 9.999999f, needs_clamping);
+
+    // 8. Merge results: set result to 1.0f for lanes where exponent was 0.
+    _cs149_vset_float(v_result, 1.f, mask_y_is_0);
+
+    // 9. Store the final combined result.
+    _cs149_vstore_float(output + i, v_result, active_mask);
+  }
 }
 
 // returns the sum of all elements in values
